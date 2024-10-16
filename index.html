@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Integration Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-container, .item-list {
+            margin: 20px auto;
+            max-width: 400px;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .form-container input, .form-container button {
+            width: 80%;
+            padding: 10px 10px;
+            margin: 10px 0;
+        }
+        .form-container button {
+            background-color: #195ced;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .item-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .item-list li {
+            background-color: #f9f9f9;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            position: relative;
+        }
+        .item-list li button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+        }
+        .update-section {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Item List</h1>
+
+    <!-- Form to add new item -->
+    <div class="form-container">
+        <h2>Add New Item</h2>
+        <input type="text" id="name" placeholder="Item Name">
+        <input type="text" id="description" placeholder="Item Description">
+        <button onclick="addItem()">Add Item</button>
+    </div>
+
+    <!-- Section to update an item -->
+    <div class="update-section" id="updateSection">
+        <h2>Update Item</h2>
+        <input type="text" id="updateName" placeholder="Updated Item Name">
+        <input type="text" id="updateDescription" placeholder="Updated Item Description">
+        <button onclick="updateItem()">Update Item</button>
+    </div>
+
+    <!-- Display item list -->
+    <div class="item-list">
+        <h2>Items</h2>
+        <ul id="itemList"></ul>
+    </div>
+
+    <script>
+        let updateItemId = null;
+
+        // Base API URL
+        const apiBaseUrl = 'http://localhost:5000/api/items';
+
+        // Fetch and display all items
+        async function fetchItems() {
+            const response = await fetch(apiBaseUrl);
+            const items = await response.json();
+            const itemList = document.getElementById('itemList');
+            itemList.innerHTML = '';  // Clear existing items
+
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${item.name} - ${item.description}
+                    <button onclick="editItem('${item._id}', '${item.name}', '${item.description}')">Edit</button>
+                    <button onclick="deleteItem('${item._id}')">Delete</button>
+                `;
+                itemList.appendChild(li);
+            });
+        }
+
+        // Add new item
+        async function addItem() {
+            const name = document.getElementById('name').value;
+            const description = document.getElementById('description').value;
+
+            if (name && description) {
+                const newItem = { name, description };
+
+                await fetch(apiBaseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newItem)
+                });
+
+                document.getElementById('name').value = '';
+                document.getElementById('description').value = '';
+                fetchItems();  // Refresh the item list
+            } else {
+                alert('Please fill in both fields.');
+            }
+        }
+
+        // Edit (populate update form)
+        function editItem(id, name, description) {
+            updateItemId = id;
+            document.getElementById('updateName').value = name;
+            document.getElementById('updateDescription').value = description;
+            document.getElementById('updateSection').style.display = 'block';
+        }
+
+        // Update item
+        async function updateItem() {
+            const name = document.getElementById('updateName').value;
+            const description = document.getElementById('updateDescription').value;
+
+            if (name && description && updateItemId) {
+                const updatedItem = { name, description };
+
+                await fetch(`${apiBaseUrl}/${updateItemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedItem)
+                });
+
+                document.getElementById('updateName').value = '';
+                document.getElementById('updateDescription').value = '';
+                document.getElementById('updateSection').style.display = 'none';
+                fetchItems();  // Refresh the item list
+            } else {
+                alert('Please fill in both fields.');
+            }
+        }
+
+        // Delete item
+        async function deleteItem(id) {
+            await fetch(`${apiBaseUrl}/${id}`, {
+                method: 'DELETE',
+            });
+            fetchItems();  // Refresh the item list
+        }
+
+        // Fetch and display items on page load
+        window.onload = fetchItems;
+    </script>
+
+</body>
+</html>
